@@ -1,0 +1,364 @@
+{
+  "Uuid": "e24adfa3-9d7d-4aed-8613-23b41324de02",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "Delete View Templates Script",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.BoolSelector, CoreNodeModels",
+      "Id": "00f313e93eab4db49426be63a92d6a97",
+      "NodeType": "BooleanInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "140744ec9ae840ad835b4a7545a6d795",
+          "Name": "",
+          "Description": "Boolean",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Enables selection between True and False",
+      "InputValue": true
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "#laloibarra\r\n#github/archeduardo5\r\n\r\n\r\n\r\nimport clr\r\nclr.AddReference(\"RevitServices\")\r\nclr.AddReference(\"RevitAPI\")\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, View, Transaction\r\nfrom System.Collections.Generic import List\r\nfrom datetime import datetime\r\n\r\ndef log_deletion(template_name, status, error_msg=None):\r\n    \"\"\"Helper function to format deletion logs\"\"\"\r\n    timestamp = datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\r\n    return f\"[{timestamp}] Template: {template_name} - Status: {status}\" + (f\" - Error: {error_msg}\" if error_msg else \"\")\r\n\r\ndef delete_view_templates(doc, log_results=True):\r\n    \"\"\"\r\n    Delete all view templates in the document with error handling and logging\r\n    \r\n    Parameters:\r\n    doc: Revit document\r\n    log_results: Boolean to control logging\r\n    \r\n    Returns:\r\n    tuple: (success_count, failed_count, log_messages, deleted_templates)\r\n    \"\"\"\r\n    success_count = 0\r\n    failed_count = 0\r\n    log_messages = []\r\n    deleted_templates = []\r\n    \r\n    try:\r\n        # Collect all view templates before starting transaction\r\n        view_templates = [view for view in FilteredElementCollector(doc).OfClass(View).ToElements()\r\n                         if view.IsTemplate]\r\n        \r\n        if not view_templates:\r\n            return 0, 0, [\"No view templates found in the document.\"], []\r\n        \r\n        # Start transaction\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n        \r\n        # Process each template\r\n        for view in view_templates:\r\n            try:\r\n                template_name = view.Name\r\n                doc.Delete(view.Id)\r\n                success_count += 1\r\n                deleted_templates.append(template_name)\r\n                if log_results:\r\n                    log_messages.append(log_deletion(template_name, \"Deleted Successfully\"))\r\n                    \r\n            except Exception as template_error:\r\n                failed_count += 1\r\n                if log_results:\r\n                    log_messages.append(log_deletion(template_name, \"Failed\", str(template_error)))\r\n        \r\n        # Commit transaction\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n        \r\n    except Exception as e:\r\n        # Handle any overall process errors\r\n        error_msg = f\"Process failed: {str(e)}\"\r\n        log_messages.append(error_msg)\r\n        return 0, 0, [error_msg], []\r\n    \r\n    return success_count, failed_count, log_messages, deleted_templates\r\n\r\n# Main execution\r\ntry:\r\n    input_value = IN[0]\r\n    doc = DocumentManager.Instance.CurrentDBDocument\r\n    \r\n    if not input_value:\r\n        OUT = \"Set input to True to proceed with template deletion\"\r\n    else:\r\n        # Execute deletion with logging\r\n        success_count, failed_count, logs, deleted_templates = delete_view_templates(doc)\r\n        \r\n        # Prepare output summary\r\n        summary = f\"\"\"\r\n        Operation Complete:\r\n        - Successfully deleted: {success_count} templates\r\n        - Failed deletions: {failed_count} templates\r\n        - Total processed: {success_count + failed_count} templates\r\n        \"\"\"\r\n        \r\n        OUT = summary, deleted_templates, logs\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Script execution failed: {str(e)}\"",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "43b6d9f4bfca4334898cfdfa19e108b1",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "32ea2b6900394f63916380e19a40bdf9",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "b67ee206bfd74c0e8341d7df376899ff",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "7bd5ecef1dd94069828064a3e30f52b1",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "025ad6aa749d4551aad57de9587b9944",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a12ecf20724547b3a1590b8b0740f7fc",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "140744ec9ae840ad835b4a7545a6d795",
+      "End": "32ea2b6900394f63916380e19a40bdf9",
+      "Id": "4c927054807e41f088c634d21b6cc895",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b67ee206bfd74c0e8341d7df376899ff",
+      "End": "025ad6aa749d4551aad57de9587b9944",
+      "Id": "9685f40ea0004af88d417784fb68e210",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": null,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "3.0",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.0.3.7597",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "00f313e93eab4db49426be63a92d6a97",
+        "Name": "Boolean",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -277.05308428108845,
+        "Y": 38.42188338468466
+      },
+      {
+        "Id": "43b6d9f4bfca4334898cfdfa19e108b1",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 77.32014528387299,
+        "Y": 37.55834675262176
+      },
+      {
+        "Id": "7bd5ecef1dd94069828064a3e30f52b1",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 341.7269385174152,
+        "Y": 30.26307722375489
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "116b17d5bebf4c3e92fae0c3db8545db",
+        "Title": "Python Libraries: Class Development",
+        "DescriptionText": "",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "35ec9969e9fc4b34af327f9802ebff3b"
+        ],
+        "HasNestedGroups": false,
+        "Left": -1094.9004775363464,
+        "Top": 11.390632162745362,
+        "Width": 319.0,
+        "Height": 1923.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 171.39063216274536,
+        "InitialHeight": 1793.0,
+        "TextblockHeight": 150.0,
+        "Background": "#FFFF7BAC"
+      },
+      {
+        "Id": "1d331fb658d34ab186d248b0868d209c",
+        "Title": "Delete View Templates Script",
+        "DescriptionText": "",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "00f313e93eab4db49426be63a92d6a97",
+          "43b6d9f4bfca4334898cfdfa19e108b1",
+          "7bd5ecef1dd94069828064a3e30f52b1"
+        ],
+        "HasNestedGroups": false,
+        "Left": -287.05308428108845,
+        "Top": -42.73692277624511,
+        "Width": 915.7800227985036,
+        "Height": 213.15880616092977,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 30.26307722375489,
+        "InitialHeight": 170.15880616092977,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "7c2418e646a3438785b9f7fad4ccf647",
+        "Title": "AEC Script User Instructions",
+        "DescriptionText": "Description <Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "573741586b7b4b9984b8700aba8744a0"
+        ],
+        "HasNestedGroups": false,
+        "Left": -664.7576507364157,
+        "Top": 32.146002717201384,
+        "Width": 319.0,
+        "Height": 650.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 157.14600271720138,
+        "InitialHeight": 555.0,
+        "TextblockHeight": 115.0,
+        "Background": "#FFA4E1FF"
+      },
+      {
+        "Id": "c7a994ee748d4050a0f7e505c4fedf0d",
+        "Title": "",
+        "DescriptionText": "",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "56dd80342567481f8eecf0e321c602e5"
+        ],
+        "HasNestedGroups": false,
+        "Left": -1277.998443564529,
+        "Top": -56.35300411503388,
+        "Width": 122.0,
+        "Height": 137.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 16.646995884966117,
+        "InitialHeight": 94.0,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "5b828a0686c74a92a0e086f0d5924d9f",
+        "Title": "Documentation and User Guide",
+        "DescriptionText": "",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "116b17d5bebf4c3e92fae0c3db8545db",
+          "7c2418e646a3438785b9f7fad4ccf647"
+        ],
+        "HasNestedGroups": true,
+        "Left": -1104.9004775363464,
+        "Top": -61.60936783725464,
+        "Width": 769.1428267999307,
+        "Height": 2011.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 11.390632162745362,
+        "InitialHeight": 705.755370554456,
+        "TextblockHeight": 63.0,
+        "Background": "#FFB5B5B5"
+      },
+      {
+        "Id": "56dd80342567481f8eecf0e321c602e5",
+        "Title": "eduardo ibarra\n",
+        "DescriptionText": null,
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [],
+        "HasNestedGroups": false,
+        "Left": -1267.998443564529,
+        "Top": 24.646995884966117,
+        "Width": 0.0,
+        "Height": 0.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 0.0,
+        "InitialHeight": 0.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "573741586b7b4b9984b8700aba8744a0",
+        "Title": "\"\"\"\nInstructions for the Revit View Template Deletion Script\n\nDescription:\nThis script is designed to delete all view templates in a Revit document. \nIt logs the status of each deletion, whether successful or failed, and provides a summary at the end.\n\nRequirements:\n- This script must be run in the Dynamo environment for Revit.\n- Ensure you have permissions to delete elements in the current Revit project.\n\nUsage:\n1. Import the script into Dynamo and connect it to an input node.\n2. Provide a boolean input value to the input node:\n   - `True`: It will proceed with the deletion of view templates.\n   - `False` or empty: It will not perform any action.\n3. Run the script.\n\nOutput:\n- The script returns a summary of the operation, which includes:\n  - Number of templates successfully deleted.\n  - Number of failed deletions.\n  - List of deleted templates.\n  - Detailed logs of the operations.\n",
+        "DescriptionText": null,
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [],
+        "HasNestedGroups": false,
+        "Left": -654.7576507364157,
+        "Top": 165.14600271720138,
+        "Width": 0.0,
+        "Height": 0.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 0.0,
+        "InitialHeight": 0.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "35ec9969e9fc4b34af327f9802ebff3b",
+        "Title": "#laloibarra\r\n#github/archeduardo5\r\n\r\n\r\n\r\nimport clr\r\nclr.AddReference(\"RevitServices\")\r\nclr.AddReference(\"RevitAPI\")\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, View, Transaction\r\nfrom System.Collections.Generic import List\r\nfrom datetime import datetime\r\n\r\ndef log_deletion(template_name, status, error_msg=None):\r\n    \"\"\"Helper function to format deletion logs\"\"\"\r\n    timestamp = datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")\r\n    return f\"[{timestamp}] Template: {template_name} - Status: {status}\" + (f\" - Error: {error_msg}\" if error_msg else \"\")\r\n\r\ndef delete_view_templates(doc, log_results=True):\r\n    \"\"\"\r\n    Delete all view templates in the document with error handling and logging\r\n    \r\n    Parameters:\r\n    doc: Revit document\r\n    log_results: Boolean to control logging\r\n    \r\n    Returns:\r\n    tuple: (success_count, failed_count, log_messages, deleted_templates)\r\n    \"\"\"\r\n    success_count = 0\r\n    failed_count = 0\r\n    log_messages = []\r\n    deleted_templates = []\r\n    \r\n    try:\r\n        # Collect all view templates before starting transaction\r\n        view_templates = [view for view in FilteredElementCollector(doc).OfClass(View).ToElements()\r\n                         if view.IsTemplate]\r\n        \r\n        if not view_templates:\r\n            return 0, 0, [\"No view templates found in the document.\"], []\r\n        \r\n        # Start transaction\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n        \r\n        # Process each template\r\n        for view in view_templates:\r\n            try:\r\n                template_name = view.Name\r\n                doc.Delete(view.Id)\r\n                success_count += 1\r\n                deleted_templates.append(template_name)\r\n                if log_results:\r\n                    log_messages.append(log_deletion(template_name, \"Deleted Successfully\"))\r\n                    \r\n            except Exception as template_error:\r\n                failed_count += 1\r\n                if log_results:\r\n                    log_messages.append(log_deletion(template_name, \"Failed\", str(template_error)))\r\n        \r\n        # Commit transaction\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n        \r\n    except Exception as e:\r\n        # Handle any overall process errors\r\n        error_msg = f\"Process failed: {str(e)}\"\r\n        log_messages.append(error_msg)\r\n        return 0, 0, [error_msg], []\r\n    \r\n    return success_count, failed_count, log_messages, deleted_templates\r\n\r\n# Main execution\r\ntry:\r\n    input_value = IN[0]\r\n    doc = DocumentManager.Instance.CurrentDBDocument\r\n    \r\n    if not input_value:\r\n        OUT = \"Set input to True to proceed with template deletion\"\r\n    else:\r\n        # Execute deletion with logging\r\n        success_count, failed_count, logs, deleted_templates = delete_view_templates(doc)\r\n        \r\n        # Prepare output summary\r\n        summary = f\"\"\"\r\n        Operation Complete:\r\n        - Successfully deleted: {success_count} templates\r\n        - Failed deletions: {failed_count} templates\r\n        - Total processed: {success_count + failed_count} templates\r\n        \"\"\"\r\n        \r\n        OUT = summary, deleted_templates, logs\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Script execution failed: {str(e)}\"",
+        "DescriptionText": null,
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [],
+        "HasNestedGroups": false,
+        "Left": -1084.9004775363464,
+        "Top": 179.39063216274536,
+        "Width": 0.0,
+        "Height": 0.0,
+        "FontSize": 36.0,
+        "GroupStyleId": "00000000-0000-0000-0000-000000000000",
+        "InitialTop": 0.0,
+        "InitialHeight": 0.0,
+        "TextblockHeight": 0.0,
+        "Background": "#FFC1D676"
+      }
+    ],
+    "X": 665.534953211823,
+    "Y": 90.0583184605533,
+    "Zoom": 0.5677238790369507
+  }
+}
